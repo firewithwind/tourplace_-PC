@@ -6,6 +6,10 @@ import java.awt.event.MouseListener;
 
 import javax.swing.*;
 
+import com.sun.org.apache.bcel.internal.generic.JsrInstruction;
+
+import sun.security.util.Debug;
+
 import custom.*;
 import entity.*;
 
@@ -25,6 +29,7 @@ public class Frame extends JFrame{
 		this.setCont();
 		setUndecorated(true);
 		setVisible(true);
+		setResizable(false);
 	}
 	public static void main(String[] args) {
 		// TODO Auto-generated method stub
@@ -32,6 +37,8 @@ public class Frame extends JFrame{
 	}
 //	添加元素
 	public void setCont(){
+		Color white = Color.white;
+		Color font_Color = new Color(140, 140, 140);
 		final JPanel phead = new JPanel(),
 				pside = new JPanel(),
 				pcont = new JPanel();
@@ -576,7 +583,14 @@ public class Frame extends JFrame{
 			pcont_order = new JPanel(),
 			pcont_save = new JPanel(),
 			pcont_home = new JPanel();
-		final JPanel[] pcont_cont = {pcont_scenic, pcont_inter,pcont_video,pcont_user,pcont_order,pcont_save,pcont_home};
+		JScrollPane jsp1 = new JScrollPane(pcont_scenic,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
+				jsp2 = new JScrollPane(pcont_inter,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
+				jsp3 = new JScrollPane(pcont_video,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
+				jsp4 = new JScrollPane(pcont_user,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
+				jsp5 = new JScrollPane(pcont_order,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
+				jsp6 = new JScrollPane(pcont_save,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
+				jsp7 = new JScrollPane(pcont_home,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		final JScrollPane[] pcont_cont = {jsp1, jsp2, jsp3, jsp4, jsp5, jsp6, jsp7};
 		String[] cardName = {"景点推荐","旅游国际","宣传视频","个人信息","我的订单","我的仓库","我的收藏"};
 		for(int i = 0; i <7; i++){
 			pcont.add(pcont_cont[i],cardName[i]);
@@ -588,17 +602,18 @@ public class Frame extends JFrame{
 				sp5 = new SpringLayout(),
 				sp6 = new SpringLayout(),
 				sp7 = new SpringLayout();
+		
+		
 //		景区推荐界面
-		pcont_scenic.setLayout(sp1);
+		pcont_scenic.setLayout(new FlowLayout());
 		pcont_scenic.setBackground(new Color(255,255,255));
+		pcont_scenic.setPreferredSize(new Dimension(800,1000));
+		
 //			头部
 		JPanel p_scenic_head = new JPanel();
-		sp1.putConstraint(SpringLayout.WEST,p_scenic_head , 0, SpringLayout.WEST, pcont_scenic);
-		sp1.putConstraint(SpringLayout.EAST,p_scenic_head  , 0, SpringLayout.EAST, pcont_scenic);
-		sp1.putConstraint(SpringLayout.NORTH,p_scenic_head  ,0, SpringLayout.NORTH, pcont_scenic);
-		sp1.putConstraint(SpringLayout.SOUTH,p_scenic_head  , 50, SpringLayout.NORTH, pcont_scenic);
+		p_scenic_head.setPreferredSize(new Dimension(800,50));
 		pcont_scenic.add(p_scenic_head);
-		p_scenic_head.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, new Color(219, 219, 219)));
+		p_scenic_head.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
 		p_scenic_head.setBackground(new Color(255, 255, 255));
 		final JLabel l_scenic_all = new JLabel("全部"),
 				l_scenic_mount = new JLabel("登山"),
@@ -626,21 +641,15 @@ public class Frame extends JFrame{
 //			主体body
 		JPanel p_scenic_body = new JPanel();
 		SpringLayout sp_scenic_body = new SpringLayout();
-//		p_scenic_body.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-		sp1.putConstraint(SpringLayout.WEST, p_scenic_body, 0, SpringLayout.WEST, pcont_scenic);
-		sp1.putConstraint(SpringLayout.EAST, p_scenic_body, 0, SpringLayout.EAST, pcont_scenic);
-		sp1.putConstraint(SpringLayout.NORTH, p_scenic_body, 50, SpringLayout.NORTH, pcont_scenic);
-		sp1.putConstraint(SpringLayout.SOUTH, p_scenic_body, 0, SpringLayout.SOUTH, pcont_scenic);
+		p_scenic_body.setPreferredSize(new Dimension(800,1000));
 		pcont_scenic.add(p_scenic_body);
 		p_scenic_body.setBackground(new Color(255, 255, 255));
 		p_scenic_body.setBorder(null);
-		p_scenic_body.setLayout(sp_scenic_body);
+//		p_scenic_body.setLayout(sp_scenic_body);
+		p_scenic_body.setLayout(new FlowLayout(1));
 //			主体轮播图
 		JPanel p_scenic_body_turn = new JPanel();
-		sp_scenic_body.putConstraint(SpringLayout.WEST, p_scenic_body_turn, 0, SpringLayout.WEST, p_scenic_body);
-		sp_scenic_body.putConstraint(SpringLayout.EAST, p_scenic_body_turn, 0, SpringLayout.EAST, p_scenic_body);
-		sp_scenic_body.putConstraint(SpringLayout.NORTH, p_scenic_body_turn, 10, SpringLayout.NORTH, p_scenic_body);
-		sp_scenic_body.putConstraint(SpringLayout.SOUTH, p_scenic_body_turn, 200, SpringLayout.NORTH, p_scenic_body);
+		p_scenic_body_turn.setPreferredSize(new Dimension(800,190));
 		p_scenic_body_turn.setBackground(Color.white);
 		p_scenic_body_turn.setLayout(new FlowLayout(1,0,0));
 		p_scenic_body.add(p_scenic_body_turn);
@@ -652,7 +661,6 @@ public class Frame extends JFrame{
 			JLabel l_turn_picture = new JLabel();
 			ImageIcon icon_turn = new ImageIcon(new ImageIcon(turnImgUrl[j]).getImage().getScaledInstance(600, 200, Image.SCALE_DEFAULT));
 			l_turn_picture.setIcon(icon_turn);
-			l_turn_picture.setSize(160,44);
 			p_turn_picture.add(l_turn_picture);
 		}
 		Thread turn = new Thread(new Runnable() {
@@ -673,54 +681,148 @@ public class Frame extends JFrame{
 		
 //		主体景区图片展示
 		JPanel p_scenic_body_main = new JPanel();
-//		SpringLayout sp_scenic_body_main = new SpringLayout();
-		sp_scenic_body.putConstraint(SpringLayout.WEST, p_scenic_body_main, 0, SpringLayout.WEST, p_scenic_body);
-		sp_scenic_body.putConstraint(SpringLayout.EAST, p_scenic_body_main, 0, SpringLayout.EAST, p_scenic_body);
-		sp_scenic_body.putConstraint(SpringLayout.NORTH, p_scenic_body_main, 210, SpringLayout.NORTH, p_scenic_body);
-		sp_scenic_body.putConstraint(SpringLayout.SOUTH, p_scenic_body_main, 0, SpringLayout.SOUTH, p_scenic_body);
+		p_scenic_body_main.setPreferredSize(new Dimension(800,600));
 		p_scenic_body_main.setBackground(Color.white);
-		
 		p_scenic_body_main.setLayout(new FlowLayout(1));
+		//题目
 		JPanel p_scenic_body_main_title = new JPanel();
 		p_scenic_body_main.add(p_scenic_body_main_title);
 		p_scenic_body_main_title.setBackground(Color.white);
-		JLabel s_scenic_main_title = new JLabel("全部景区                                                                             ");
-		p_scenic_body_main_title.setPreferredSize(new Dimension(600,30));
+		JLabel s_scenic_main_title = new JLabel("全部景区                                                                                            ");
+		p_scenic_body_main_title.setPreferredSize(new Dimension(700,30));
 		p_scenic_body_main_title.add(s_scenic_main_title);
 		s_scenic_main_title.setForeground(new Color(140,140,140));
 		p_scenic_body_main_title.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
-		Scenic[] scenics = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
+		
+		//内容
+		JPanel p_scenic_body_main_cont = new JPanel();
+		p_scenic_body_main_cont.setPreferredSize(new Dimension(700,500));
+		p_scenic_body_main_cont.setBackground(Color.white);
+		p_scenic_body_main_cont.setLayout(new FlowLayout(0,15,10));
+		p_scenic_body_main.add(p_scenic_body_main_cont);
+		Scenic[] scenics = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
+				new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
+				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
 				new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-				new Scenic("00000001","泰山","img/scenicindex/taishan.jpg")};
-		for(int k = 0;k < scenics.length;k++){
-			
-		}
-		
-		
-		
-		
-		
-		
-		
-		
-		
+				new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
+				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg")};
+		showScenic(p_scenic_body_main_cont,scenics,"    购     票");
 		p_scenic_body.add(p_scenic_body_main);
 		
+//		旅游国际
+		pcont_inter.setLayout(new FlowLayout(1,10,0));
+		pcont_inter.setBackground(Color.white);
+		JPanel p_inter_news = new JPanel();
+		JPanel p_inter_scenic = new JPanel();
+		
+//			旅游资讯
+		String icon_news_url = "img/scenicindex/huanlegu.jpg";
+		String[] news = {"美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝"};
+		JPanel p_inter_news_title = new JPanel();
+		JLabel l_inter_news_title = new JLabel("旅游快讯");
+		JPanel p_inter_news_cont = new JPanel();
+		JLabel l_inter_news_cont = new JLabel();
+		ImageIcon icon_news = new ImageIcon(new ImageIcon(icon_news_url).getImage().getScaledInstance(120, 160, Image.SCALE_DEFAULT));
+		
+		p_inter_news.setLayout(null);
+		p_inter_news.setPreferredSize(new Dimension(700,200));
+		p_inter_news.setBackground(Color.white);
+		
+		p_inter_news_title.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
+		p_inter_news_title.setBounds(0,20,700,30);
+		p_inter_news_title.setLayout(new FlowLayout(0));
+		p_inter_news_title.setBackground(white);
+		l_inter_news_title.setForeground(font_Color);
+		
+		p_inter_news_cont.setBorder(BorderFactory.createMatteBorder(0, 1, 1, 1, new Color(219, 219, 219)));
+		p_inter_news_cont.setBounds(0, 50, 700,160);
+		p_inter_news_cont.setLayout(null);
+		p_inter_news_cont.setBackground(white);
+		l_inter_news_cont.setBounds(0, 0, 120, 160);
+		l_inter_news_cont.setIcon(icon_news);
+		for(int news_num = 0; news_num < 8; news_num++){
+			int x = news_num/4;
+			int y = news_num%4;
+			JLabel label_news = new JLabel(news[news_num]);
+			label_news.setBounds(130+x*290,y*40,280,30);
+			label_news.setForeground(font_Color);
+			p_inter_news_cont.add(label_news);
+		}
+		p_inter_news_title.add(l_inter_news_title);
+		p_inter_news_cont.add(l_inter_news_cont);
+		p_inter_news.add(p_inter_news_title);
+		p_inter_news.add(p_inter_news_cont);
+
+//			国际景点
+		JPanel p_inter_scenic_title = new JPanel();
+		JPanel p_inter_scenic_cont = new JPanel();
+		JLabel l_inter_scenic_title = new JLabel("国际景区");
+		//标题
+		l_inter_scenic_title.setForeground(font_Color);
+		p_inter_scenic_title.setBounds(0, 20, 700, 30);
+		p_inter_scenic_title.setLayout(new FlowLayout(0));
+		p_inter_scenic_title.setBackground(white);
+		p_inter_scenic_title.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
+		
+		//内容
+		Scenic[] inter_scenics = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
+				new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
+				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
+				new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
+				new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
+				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
+				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
+				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg")};
+		showScenic(p_inter_scenic_cont,inter_scenics,"    购     票");
+		p_inter_scenic_cont.setLayout(new FlowLayout(0,18,20));
+		p_inter_scenic_cont.setBounds(0,50,700,500);
+		p_inter_scenic_cont.setBackground(white);
+		
+		p_inter_scenic.setLayout(null);
+		p_inter_scenic.setPreferredSize(new Dimension(700,600));
+		p_inter_scenic.setBackground(Color.white);
+		
+		p_inter_scenic_title.add(l_inter_scenic_title);
+		p_inter_scenic.add(p_inter_scenic_title);
+		p_inter_scenic.add(p_inter_scenic_cont);
 		
 		
+		pcont_inter.setPreferredSize(new Dimension(700,1000));
+		pcont_inter.add(p_inter_news);
+		pcont_inter.add(p_inter_scenic);
 		
+//		宣传视频
+		pcont_video.setLayout(new FlowLayout(1,10,0));
+		pcont_video.setBackground(Color.white);
+		JPanel p_video_head = new JPanel();
+		JPanel p_video_cont = new JPanel();
+		JPanel p_video_cont_title = new JPanel();
+		JPanel p_video_cont_body = new JPanel();
+		JLabel l_video_cont_title = new JLabel("宣传视频");
 		
+			//顶部视频框
+		p_video_head.setPreferredSize(new Dimension(800,200));
+		p_video_head.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
+			//宣传视频展示
+		p_video_cont.setPreferredSize(new Dimension(700,600));
+		p_video_cont.setBackground(white);
+		p_video_cont.setLayout(null);
+		p_video_cont_title.setBounds(0, 10, 700, 30);
+		p_video_cont_title.setBackground(white);
+		p_video_cont_title.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
+		p_video_cont_title.setLayout(new FlowLayout(0));
+		l_video_cont_title.setForeground(font_Color);
+		p_video_cont_body.setLayout(new FlowLayout(0,18,20));
+		p_video_cont_body.setBounds(0,40,700,600);
+		p_video_cont_body.setBackground(white);
+		showScenic(p_video_cont_body,inter_scenics,"    观     看");
 		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+		p_video_cont_title.add(l_video_cont_title);
+		p_video_cont.add(p_video_cont_title);
+		p_video_cont.add(p_video_cont_body);
+		pcont_video.add(p_video_head);
+		pcont_video.add(p_video_cont);
+		pcont_video.setPreferredSize(new Dimension(800,1000));
 		
 		contentPane.setLayout(sp);
 		contentPane.add(phead);
@@ -735,6 +837,60 @@ public class Frame extends JFrame{
 			}else{
 				p[i].setBackground(new Color(247, 247, 247));
 			}
+		}
+	}
+	private void showScenic(JPanel p,Scenic[] scenics,String str){
+		for(int k = 0;k < scenics.length;k++){
+			final JPanel p_scenic_content = new JPanel();
+			JPanel p_scenic_name = new JPanel();
+			JLabel scenic_cont = new JLabel(),
+					scenic_name = new JLabel(scenics[k].getName());
+			final JLabel button_buy = new JLabel(str);
+			scenic_name.setForeground(Color.white);
+			p_scenic_name.add(scenic_name);
+			p_scenic_name.setOpaque(false);
+			p_scenic_name.setBounds(0,120,117,25);
+			button_buy.setFont(new Font("微软雅黑",1,13));
+			button_buy.setForeground(new Color(61, 61, 61));
+			button_buy.addMouseListener(new MouseListener() {
+				
+				public void mouseReleased(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mousePressed(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mouseExited(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					button_buy.setForeground(new Color(61, 61, 61));
+					p_scenic_content.setBackground(new Color(235, 235, 235));
+				}
+				
+				public void mouseEntered(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					button_buy.setForeground(Color.white);
+					p_scenic_content.setBackground(new Color(255, 0, 0));
+				}
+				
+				public void mouseClicked(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+			});
+			ImageIcon icon_scenic = new ImageIcon(new ImageIcon(scenics[k].getPicture()).getImage().getScaledInstance(117, 150, Image.SCALE_DEFAULT));
+			scenic_cont.setIcon(icon_scenic);
+			scenic_cont.setBounds(0,0,117,150);
+			button_buy.setBounds(0,150,117,24);
+			p_scenic_content.setLayout(null);
+			p_scenic_content.setPreferredSize(new Dimension(117,175));
+			p_scenic_content.add(p_scenic_name);
+			p_scenic_content.add(scenic_cont);
+			p_scenic_content.add(button_buy);
+			p.add(p_scenic_content);
 		}
 	}
 }
