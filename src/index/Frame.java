@@ -1,8 +1,10 @@
 package index;
 
 import java.awt.*;
+import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.awt.event.MouseMotionAdapter;
 
 import javax.swing.*;
 
@@ -17,12 +19,41 @@ public class Frame extends JFrame{
 	/**
 	 * @param args
 	 */
+	private int xOld;
+	private int yOld;
+	Scenic[] scenics = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
+			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
+			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
+			new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
+			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
+			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg")};
+	Scenic[] inter_scenics = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
+			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
+			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
+			new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
+			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
+			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
+			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
+			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg")};
+	Scenic[] scenic_videos = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
+			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
+			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
+			new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
+			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
+			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
+			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
+			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg")};
+	String[] news = {"美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝"};
+	String[] order_item = {"00000000","00000000","","",""};
+	String[] save_item = {"00000000","00000000",""};
+	Ticket[] tickets = {new Ticket(save_item),new Ticket()};
+	Order[] orders = {new Order(order_item),new Order()};
 	public Frame(){
 		super();
 		init();
 	}
 //	初始化
-	private void init(){
+	public void init(){
 		this.setBounds(100,100,1030, 650);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setTitle("Tourplace-去自己想去的地方");
@@ -30,10 +61,6 @@ public class Frame extends JFrame{
 		setUndecorated(true);
 		setVisible(true);
 		setResizable(false);
-	}
-	public static void main(String[] args) {
-		// TODO Auto-generated method stub
-		new Frame().init();
 	}
 //	添加元素
 	public void setCont(){
@@ -58,6 +85,21 @@ public class Frame extends JFrame{
 		phead.setForeground(Color.white);
 //		头部内容
 		phead.setLayout(spHead);
+		phead.addMouseListener(new MouseAdapter() {
+			 public void mousePressed(MouseEvent e){
+               xOld = e.getX();
+               yOld = e.getY();
+           }
+		});
+		phead.addMouseMotionListener(new MouseMotionAdapter() {
+			public void mouseDragged(MouseEvent e){
+              int xOnScreen = e.getXOnScreen();
+              int yOnScreen = e.getYOnScreen();
+              int xx = xOnScreen - xOld;
+              int yy = yOnScreen - yOld;
+              setLocation(xx, yy);
+          }
+		});
 		JPanel plogo = new JPanel();
 		JPanel psearch =new JPanel();
 		JPanel puser = new JPanel();
@@ -595,15 +637,6 @@ public class Frame extends JFrame{
 		for(int i = 0; i <7; i++){
 			pcont.add(pcont_cont[i],cardName[i]);
 		}
-		SpringLayout sp1 = new SpringLayout(),
-				sp2 = new SpringLayout(),
-				sp3 = new SpringLayout(),
-				sp4 = new SpringLayout(),
-				sp5 = new SpringLayout(),
-				sp6 = new SpringLayout(),
-				sp7 = new SpringLayout();
-		
-		
 //		景区推荐界面
 		pcont_scenic.setLayout(new FlowLayout());
 		pcont_scenic.setBackground(new Color(255,255,255));
@@ -640,7 +673,6 @@ public class Frame extends JFrame{
 		p_scenic_head.add(l_scenic_other);
 //			主体body
 		JPanel p_scenic_body = new JPanel();
-		SpringLayout sp_scenic_body = new SpringLayout();
 		p_scenic_body.setPreferredSize(new Dimension(800,1000));
 		pcont_scenic.add(p_scenic_body);
 		p_scenic_body.setBackground(new Color(255, 255, 255));
@@ -700,12 +732,7 @@ public class Frame extends JFrame{
 		p_scenic_body_main_cont.setBackground(Color.white);
 		p_scenic_body_main_cont.setLayout(new FlowLayout(0,15,10));
 		p_scenic_body_main.add(p_scenic_body_main_cont);
-		Scenic[] scenics = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-				new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
-				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-				new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-				new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
-				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg")};
+		
 		showScenic(p_scenic_body_main_cont,scenics,"    购     票");
 		p_scenic_body.add(p_scenic_body_main);
 		
@@ -717,7 +744,6 @@ public class Frame extends JFrame{
 		
 //			旅游资讯
 		String icon_news_url = "img/scenicindex/huanlegu.jpg";
-		String[] news = {"美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝"};
 		JPanel p_inter_news_title = new JPanel();
 		JLabel l_inter_news_title = new JLabel("旅游快讯");
 		JPanel p_inter_news_cont = new JPanel();
@@ -765,14 +791,6 @@ public class Frame extends JFrame{
 		p_inter_scenic_title.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
 		
 		//内容
-		Scenic[] inter_scenics = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-				new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
-				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-				new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-				new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
-				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-				new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg")};
 		showScenic(p_inter_scenic_cont,inter_scenics,"    购     票");
 		p_inter_scenic_cont.setLayout(new FlowLayout(0,18,20));
 		p_inter_scenic_cont.setBounds(0,50,700,500);
@@ -815,7 +833,7 @@ public class Frame extends JFrame{
 		p_video_cont_body.setLayout(new FlowLayout(0,18,20));
 		p_video_cont_body.setBounds(0,40,700,600);
 		p_video_cont_body.setBackground(white);
-		showScenic(p_video_cont_body,inter_scenics,"    观     看");
+		showScenic(p_video_cont_body,scenic_videos,"    观     看");
 		
 		p_video_cont_title.add(l_video_cont_title);
 		p_video_cont.add(p_video_cont_title);
@@ -823,6 +841,238 @@ public class Frame extends JFrame{
 		pcont_video.add(p_video_head);
 		pcont_video.add(p_video_cont);
 		pcont_video.setPreferredSize(new Dimension(800,1000));
+		
+//		用户信息
+		pcont_user.setLayout(new FlowLayout(1,10,0));
+		pcont_user.setBackground(Color.white);
+		pcont_user.setPreferredSize(new Dimension(750,800));
+		JPanel p_user_head = new JPanel();
+		JPanel p_user_cont = new JPanel();
+		JPanel p_user_cont_infor = new JPanel();
+		JPanel p_user_cont_avatar = new JPanel();
+		JLabel l_user_head = new JLabel("编辑个人信息>>"),
+				l_user_cont_name = new JLabel("昵称: "),
+				l_user_cont_sex = new JLabel("性别: "),
+				l_user_cont_birthday = new JLabel("生日: "),
+				l_user_cont_place = new JLabel("省市: "),
+				l_user_cont_intro = new JLabel("介绍: ");
+		JLabel[] label_infor = {l_user_cont_name, l_user_cont_sex, l_user_cont_birthday, l_user_cont_place, l_user_cont_intro};
+		JTextField t_user_name = new JTextField();
+		JRadioButton secret = new JRadioButton("2"),
+				sex_man = new JRadioButton("0"),
+				sex_woman = new JRadioButton("1");
+		JLabel l_secret = new JLabel("保密");
+		JLabel l_sex_man = new JLabel("男");
+		JLabel l_sex_woman = new JLabel("女");
+		ButtonGroup b_user_sex = new ButtonGroup();
+		JComboBox birth_y = new JComboBox(),
+				birth_m = new JComboBox(),
+				province = new JComboBox(),
+				city = new JComboBox();
+		JLabel l_birth_y = new JLabel("年");
+		JLabel l_birth_m = new JLabel("月");
+		JLabel l_province = new JLabel("省");
+		JLabel l_city = new JLabel("市");
+		JTextArea t_intro = new JTextArea();
+		JLabel l_user_avatar = new JLabel();
+		JButton b_avatar = new JButton("修改");
+		//顶部标题
+		p_user_head.setPreferredSize(new Dimension(750,50));
+		p_user_head.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
+		p_user_head.setLayout(null);
+		p_user_head.setBackground(white);
+		l_user_head.setBounds(0, 20, 750,20);
+		l_user_head.setFont(new Font("微软雅黑",1,20));
+		l_user_head.setForeground(font_Color);
+		//个人信息
+		p_user_cont.setPreferredSize(new Dimension(750,1000));
+		p_user_cont.setLayout(null);
+		p_user_cont.setBackground(white);
+		p_user_cont_infor.setBounds(0,20,500,500);
+		p_user_cont_infor.setBackground(white);
+		p_user_cont_infor.setLayout(null);
+		for(int i = 0; i < 5; i ++){
+			label_infor[i].setForeground(font_Color);
+			label_infor[i].setBounds(0, i*50+10, 50, 50);
+			p_user_cont_infor.add(label_infor[i]);
+		}
+		t_user_name.setBounds(50, 22, 400, 25);
+		secret.setBounds(50, 75, 20, 20);
+		secret.setBackground(white);
+		l_secret.setBounds(70, 75, 30, 20);
+		l_secret.setForeground(font_Color);
+		sex_man.setBounds(100, 75,20,20);
+		sex_man.setBackground(white);
+		l_sex_man.setBounds(120, 75, 30,20);
+		l_sex_man.setForeground(font_Color);
+		sex_woman.setBounds(140, 75,20,20);
+		sex_woman.setBackground(white);
+		l_sex_woman.setBounds(160, 75, 30, 20);
+		l_sex_woman.setForeground(font_Color);
+		birth_y.setBounds(50, 125, 100,20);
+		birth_y.setBackground(white);
+		l_birth_y.setBounds(160,125,30,20);
+		birth_m.setBounds(210, 125, 100,20);
+		birth_m.setBackground(white);
+		l_birth_m.setBounds(320, 125, 30, 20);
+		province.setBounds(50, 175, 100,20);
+		province.setBackground(white);
+		l_province.setBounds(160,175,30,20);
+		city.setBounds(210, 175, 100,20);
+		city.setBackground(white);
+		l_city.setBounds(320, 175, 30, 20);
+		t_intro.setBounds(50, 230, 400,200);
+		t_intro.setBorder(BorderFactory.createMatteBorder(1, 1, 1, 1, new Color(219, 219, 219)));
+		
+		p_user_cont_avatar.setBounds(500,20,250,400);
+		p_user_cont_avatar.setBackground(white);
+		p_user_cont_avatar.setLayout(null);
+		ImageIcon icon_avator = new ImageIcon(new ImageIcon("img/00.jpg").getImage().getScaledInstance(150, 150, Image.SCALE_DEFAULT));
+		l_user_avatar.setIcon(icon_avator);
+		l_user_avatar.setBounds(20,30,150,150);
+		b_avatar.setBounds(65, 200, 60, 25);
+		
+		b_user_sex.add(secret);
+		b_user_sex.add(sex_man);
+		b_user_sex.add(sex_woman);
+		p_user_cont_avatar.add(l_user_avatar);
+		p_user_cont_avatar.add(b_avatar);
+		p_user_cont_infor.add(t_intro);
+		p_user_cont_infor.add(l_province);
+		p_user_cont_infor.add(l_city);
+		p_user_cont_infor.add(province);
+		p_user_cont_infor.add(city);
+		p_user_cont_infor.add(l_birth_y);
+		p_user_cont_infor.add(l_birth_m);
+		p_user_cont_infor.add(birth_y);
+		p_user_cont_infor.add(birth_m);
+		p_user_cont_infor.add(secret);
+		p_user_cont_infor.add(sex_man);
+		p_user_cont_infor.add(sex_woman);
+		p_user_cont_infor.add(t_user_name);
+		p_user_cont_infor.add(l_secret);
+		p_user_cont_infor.add(l_sex_man);
+		p_user_cont_infor.add(l_sex_woman);
+		p_user_cont.add(p_user_cont_avatar);
+		p_user_cont.add(p_user_cont_infor);
+		p_user_head.add(l_user_head);
+		pcont_user.add(p_user_head);
+		pcont_user.add(p_user_cont);
+		
+//		我的订单
+		JPanel p_order_head = new JPanel(),
+				p_order_cont = new JPanel(),
+				p_order_cont_container = new JPanel();
+		JLabel l_order_title = new JLabel("我的订单>>");
+		
+		//顶部标题
+		pcont_order.setLayout(new FlowLayout(1,10,0));
+		pcont_order.setPreferredSize(new Dimension(750,800));
+		pcont_order.setBackground(Color.white);
+		p_order_head.setPreferredSize(new Dimension(750,50));
+		p_order_head.setLayout(null);
+		p_order_head.setBackground(white);
+		p_order_head.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
+		l_order_title.setBounds(0,15,700,30);
+		l_order_title.setFont(new Font("微软雅黑",1,20));
+		l_order_title.setForeground(font_Color);
+		
+		//订单内容
+		p_order_cont.setPreferredSize(new Dimension(700,800));
+		p_order_cont.setLayout(null);
+		p_order_cont.setBackground(white);
+		p_order_cont_container.setBounds(0,20,700,600);
+		p_order_cont_container.setLayout(new FlowLayout(0,20,20));
+		p_order_cont_container.setBackground(white);
+		for(int i = 0; i < orders.length; i++){
+			JPanel p_order_cont_body = new JPanel();
+			JLabel l_order_ID = new JLabel("订单号："),
+					l_ticket_ID = new JLabel("门票号："),
+					l_order_Time = new JLabel("下单时间："),
+					l_order_Count = new JLabel("订单数量："),
+					l_order_Price = new JLabel("门票单价："),
+					orderID = new JLabel(orders[i].getOrderID()),
+					ticketID = new JLabel(orders[i].getTicketID()),
+					orderTime = new JLabel(orders[i].getOrderTime()),
+					orderCount = new JLabel(orders[i].getOrderCount()),
+					orderPrice = new JLabel(orders[i].getOrderPrice());
+			JLabel[] l = {l_order_ID, l_ticket_ID, l_order_Time, l_order_Count, l_order_Price};
+			JLabel[] item = {orderID, ticketID, orderTime, orderCount, orderPrice};
+			for(int j = 0; j < 5; j++){
+				l[j].setForeground(white);
+				l[j].setBounds(5,j*30+10,70,30);
+				item[j].setForeground(white);
+				item[j].setBounds(75,j*30+10,100,30);
+				p_order_cont_body.add(l[j]);
+				p_order_cont_body.add(item[j]);
+			}
+			
+			p_order_cont_body.setPreferredSize(new Dimension(180,250));
+			p_order_cont_body.setBackground(new Color(255,51,51));
+			p_order_cont_body.setLayout(null);
+			
+			p_order_cont_container.add(p_order_cont_body);
+		}
+
+		p_order_head.add(l_order_title);
+		p_order_cont.add(p_order_cont_container);
+		pcont_order.add(p_order_head);
+		pcont_order.add(p_order_cont);
+//		我的仓库
+		JPanel p_save_head = new JPanel(),
+				p_save_cont = new JPanel(),
+				p_save_cont_container = new JPanel();
+		JLabel l_save_title = new JLabel("我的门票>>");
+		
+		//顶部标题
+		pcont_save.setLayout(new FlowLayout(1,10,0));
+		pcont_save.setPreferredSize(new Dimension(750,800));
+		pcont_save.setBackground(Color.white);
+		p_save_head.setPreferredSize(new Dimension(750,50));
+		p_save_head.setLayout(null);
+		p_save_head.setBackground(white);
+		p_save_head.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
+		l_save_title.setBounds(0,15,700,30);
+		l_save_title.setFont(new Font("微软雅黑",1,20));
+		l_save_title.setForeground(font_Color);
+		
+		//仓库内容
+		p_save_cont.setPreferredSize(new Dimension(700,800));
+		p_save_cont.setLayout(null);
+		p_save_cont.setBackground(white);
+		p_save_cont_container.setBounds(0,20,700,600);
+		p_save_cont_container.setLayout(new FlowLayout(0,20,20));
+		p_save_cont_container.setBackground(white);
+		for(int i = 0; i < orders.length; i++){
+			JPanel p_save_cont_body = new JPanel();
+			JLabel 	l_ticket_ID = new JLabel("门票号："),
+					l_scenic_ID = new JLabel("景区号："),
+					l_save_Time = new JLabel("门票时间："),
+					ticketID = new JLabel(tickets[i].getTicketID()),
+					scenicID = new JLabel(tickets[i].getScenicID()),
+					ticketTime = new JLabel(tickets[i].getTicketTime());
+			JLabel[] l = {l_ticket_ID, l_scenic_ID, l_save_Time};
+			JLabel[] item = {ticketID, scenicID, ticketTime};
+			for(int j = 0; j < 3; j++){
+				l[j].setForeground(white);
+				l[j].setBounds(5,j*30+10,70,30);
+				item[j].setForeground(white);
+				item[j].setBounds(75,j*30+10,100,30);
+				p_save_cont_body.add(l[j]);
+				p_save_cont_body.add(item[j]);
+			}
+			
+			p_save_cont_body.setPreferredSize(new Dimension(180,120));
+			p_save_cont_body.setBackground(new Color(255,51,51));
+			p_save_cont_body.setLayout(null);
+			
+			p_save_cont_container.add(p_save_cont_body);
+		}
+
+		p_save_head.add(l_save_title);
+		p_save_cont.add(p_save_cont_container);
+		pcont_save.add(p_save_head);
+		pcont_save.add(p_save_cont);
 		
 		contentPane.setLayout(sp);
 		contentPane.add(phead);
@@ -892,5 +1142,8 @@ public class Frame extends JFrame{
 			p_scenic_content.add(button_buy);
 			p.add(p_scenic_content);
 		}
+	}
+	public void getScenics(){
+		
 	}
 }
