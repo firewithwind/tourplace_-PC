@@ -10,7 +10,7 @@ public class Scenic {
 				scenic_Type = "",
 				scenic_Video = "",
 				scenic_Phone = "";
-	
+	public Scenic next = null;
 	public Scenic(String id,String name){
 		scenic_ID = id;
 		scenic_Name = name;
@@ -20,6 +20,13 @@ public class Scenic {
 		scenic_ID = id;
 		scenic_Name = name;
 		scenic_Picture = picture;
+		
+	}
+	public Scenic(String id,String name,String picture, String video){
+		scenic_ID = id;
+		scenic_Name = name;
+		scenic_Picture = picture;
+		scenic_Video = video;
 		
 	}
 	public Scenic(String[] args){
@@ -55,7 +62,7 @@ public class Scenic {
 		return scenic_Type;
 	}
 	public String getVideo(){
-		return scenic_Name;
+		return scenic_Video;
 	}
 	public String getPhone(){
 		return scenic_Phone;

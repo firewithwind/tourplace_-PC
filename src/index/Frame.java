@@ -5,12 +5,48 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseMotionAdapter;
-
+import java.io.FileNotFoundException;
 import javax.swing.*;
 
-import com.sun.org.apache.bcel.internal.generic.JsrInstruction;
 
-import sun.security.util.Debug;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.Queue;
+
+import net.sf.json.JSONObject;
+import org.apache.commons.httpclient.Header;
+import org.apache.commons.httpclient.HttpClient;
+import org.apache.commons.httpclient.HttpException;
+import org.apache.commons.httpclient.HttpMethodBase;
+import org.apache.commons.httpclient.URI;
+import org.apache.commons.httpclient.methods.GetMethod;
+import org.apache.commons.httpclient.methods.PutMethod;
+import org.apache.commons.httpclient.methods.RequestEntity;
+import org.apache.commons.httpclient.params.HttpParams;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.ParseException;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.*;
+import org.apache.http.message.BasicNameValuePair;
+import org.apache.http.util.EntityUtils;
+
 
 import custom.*;
 import entity.*;
@@ -21,42 +57,28 @@ public class Frame extends JFrame{
 	 */
 	private int xOld;
 	private int yOld;
-	Scenic[] scenics = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
-			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-			new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
-			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg")};
-	Scenic[] inter_scenics = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
-			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-			new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
-			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg")};
-	Scenic[] scenic_videos = {new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
-			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-			new Scenic("00000001","泰山","img/scenicindex/taishan.jpg"),
-			new Scenic("00000001","黄山","img/scenicindex/huangshan.jpg"),
-			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg"),
-			new Scenic("00000001","欢乐谷","img/scenicindex/huanlegu.jpg")};
+	MyQueue scenics = new MyQueue();
+	MyQueue interScenics = new MyQueue();
+	MyQueue scenic_videos = new MyQueue();
+	User user;
 	String[] news = {"美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝","美国五大湖发生洪涝"};
-	String[] order_item = {"00000000","00000000","","",""};
 	String[] save_item = {"00000000","00000000",""};
-	Ticket[] tickets = {new Ticket(save_item),new Ticket()};
-	Order[] orders = {new Order(order_item),new Order()};
-	public Frame(){
+	Ticket[] tickets = null;
+	Ticket[] mytickets = null;
+	Order[] orders = {};
+	MyStack brushs;
+	public Frame() throws HttpException, IOException{
 		super();
 		init();
 	}
 //	初始化
-	public void init(){
+	public void init() throws HttpException, IOException{
 		this.setBounds(100,100,1030, 650);
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		this.setTitle("Tourplace-去自己想去的地方");
+		this.getScenic();
+		this.getInterScenic();
+		this.getScenicVideo();
 		this.setCont();
 		setUndecorated(true);
 		setVisible(true);
@@ -64,7 +86,8 @@ public class Frame extends JFrame{
 	}
 //	添加元素
 	public void setCont(){
-		Color white = Color.white;
+		
+		final Color white = Color.white;
 		Color font_Color = new Color(140, 140, 140);
 		final JPanel phead = new JPanel(),
 				pside = new JPanel(),
@@ -76,6 +99,50 @@ public class Frame extends JFrame{
 		SpringLayout spHead = new SpringLayout();
 		Container contentPane = getContentPane();
 		final CardLayout card = new CardLayout();
+		final JDialog login = new JDialog(this, "请登入", true);
+		//用户信息
+		JPanel p_user_head = new JPanel();
+		JPanel p_user_cont = new JPanel();
+		JPanel p_user_cont_infor = new JPanel();
+		JPanel p_user_cont_avatar = new JPanel();
+		JLabel l_user_head = new JLabel("编辑个人信息>>"),
+				l_user_cont_name = new JLabel("昵称: "),
+				l_user_cont_sex = new JLabel("性别: "),
+				l_user_cont_birthday = new JLabel("生日: "),
+				l_user_cont_place = new JLabel("省市: "),
+				l_user_cont_intro = new JLabel("介绍: ");
+		JLabel[] label_infor = {l_user_cont_name, l_user_cont_sex, l_user_cont_birthday, l_user_cont_place, l_user_cont_intro};
+		final JTextField t_user_name = new JTextField();
+		JRadioButton secret = new JRadioButton("2"),
+				sex_man = new JRadioButton("0"),
+				sex_woman = new JRadioButton("1");
+		JLabel l_secret = new JLabel("保密");
+		JLabel l_sex_man = new JLabel("男");
+		JLabel l_sex_woman = new JLabel("女");
+		ButtonGroup b_user_sex = new ButtonGroup();
+		final JTextField birth_y = new JTextField();
+		final JTextField birth_m = new JTextField();
+		final JTextField province = new JTextField(), city = new JTextField();
+		JLabel l_birth_y = new JLabel("年");
+		JLabel l_birth_m = new JLabel("月");
+		JLabel l_province = new JLabel("省");
+		JLabel l_city = new JLabel("市");
+		final JTextArea t_intro = new JTextArea();
+		JLabel l_user_avatar = new JLabel();
+		JButton b_avatar = new JButton("修改");
+		//订单信息
+		JPanel p_order_head = new JPanel(),
+				p_order_cont = new JPanel();
+		final JPanel p_order_cont_container = new JPanel();
+		JLabel l_order_title = new JLabel("我的订单>>");
+		//仓库信息
+		final JPanel p_save_head = new JPanel(),
+				p_save_cont = new JPanel(),
+				p_save_cont_container = new JPanel();
+		//回收站信息
+		final JPanel p_brush_head = new JPanel(),
+				p_brush_cont = new JPanel(),
+				p_brush_cont_container = new JPanel();
 //		窗口头部布局
 		sp.putConstraint(SpringLayout.WEST,phead , 0, SpringLayout.WEST, contentPane);
 		sp.putConstraint(SpringLayout.EAST,phead , 0, SpringLayout.EAST, contentPane);
@@ -150,7 +217,134 @@ public class Frame extends JFrame{
 		spHead.putConstraint(SpringLayout.NORTH,puser , 0, SpringLayout.NORTH, phead);
 		spHead.putConstraint(SpringLayout.SOUTH,puser , 0, SpringLayout.SOUTH, phead);
 		MyLabel luserAvatar = new MyLabel("asdasd", 40, 40);
-		JLabel luserName = new JLabel("请登入");
+		final JLabel luserName = new JLabel("请登入");
+		luserName.addMouseListener(new MouseListener() {
+			
+			public void mouseReleased(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mousePressed(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseExited(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseEntered(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseClicked(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				String text = luserName.getText();
+				if(text.equals("请登入")){
+					login.setVisible(true);
+				}
+			}
+		});
+		login.setBounds(300, 200, 300, 200);
+		//登入对话框
+		JLabel luser = new JLabel("用户名："),
+				lpassword = new JLabel("密  码：");
+		final JLabel errmsg = new JLabel();
+		JButton blogin = new JButton("登入"),
+				bregion = new JButton("注册");
+		final JTextField f_userID = new JTextField();
+		final JTextField f_password = new JTextField();
+		login.setLayout(null);
+		luser.setBounds(10,50,100,30);
+		lpassword.setBounds(10,100,100,30);
+		blogin.setBounds(60,150,70,20);
+		blogin.addMouseListener(new MouseListener() {
+			
+			public void mouseReleased(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mousePressed(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseExited(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseEntered(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseClicked(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				String userID = f_userID.getText();
+				String password = f_password.getText();
+				try {
+					login(userID, password, errmsg, luserName, login);
+				} catch (ClientProtocolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+		bregion.setBounds(150,150,70,20);
+		bregion.addMouseListener(new MouseListener() {
+			
+			public void mouseReleased(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mousePressed(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseExited(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseEntered(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseClicked(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				String password = f_password.getText();
+				try {
+					region(password,errmsg);
+				} catch (ClientProtocolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
+		f_userID.setBounds(110, 50, 150, 25);
+		f_password.setBounds(110, 100, 150, 25);
+		errmsg.setBounds(0, 180, 300, 20);
+		login.add(luser);
+		login.add(lpassword);
+		login.add(blogin);
+		login.add(bregion);
+		login.add(f_userID);
+		login.add(f_password);
+		login.add(errmsg);
 		
 		luserAvatar.setBounds(0,5,40,40);
 		ImageIcon icon = new ImageIcon("img/00.jpg");
@@ -340,10 +534,19 @@ public class Frame extends JFrame{
 				// TODO Auto-generated method stub
 				changeCard(parray,0);
 				card.show(pcont,"景点推荐");
+				try {
+					getScenic();
+				} catch (HttpException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		});
 		p_scenic1.add(icon1);
-
+//旅游国际
 		final JLabel lscenic_internation = new JLabel("旅游国际");
 		JLabel icon2 = new JLabel();
 		ImageIcon icon_internation = new ImageIcon(new ImageIcon("img/国际.png").getImage().getScaledInstance(15, 15, Image.SCALE_DEFAULT));
@@ -474,10 +677,21 @@ public class Frame extends JFrame{
 				// TODO Auto-generated method stub
 				changeCard(parray,3);
 				card.show(pcont,"个人信息");
+				if(user.getName()!=""){
+					t_user_name.setText(user.getName());
+					if(user.getBirth()!=""){
+						String[] birth = user.getBirth().split("/");
+						birth_y.setText(birth[0]);
+						birth_m.setText(birth[1]);
+					}
+					if(user.getIntro()!=""){
+						t_intro.setText(user.getIntro());
+					}
+				}
 			}
 		});
 		p_user1.add(icon4);
-
+//订单
 		final JLabel luser_order = new JLabel("我的订单");
 		JLabel icon5 = new JLabel();
 		ImageIcon icon_order = new ImageIcon(new ImageIcon("img/订单.png").getImage().getScaledInstance(15, 15, Image.SCALE_DEFAULT));
@@ -515,10 +729,19 @@ public class Frame extends JFrame{
 				// TODO Auto-generated method stub
 				changeCard(parray,4);
 				card.show(pcont,"我的订单");
+				try {
+					getOrders(p_order_cont_container, white);
+				} catch (HttpException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		});
 		p_user2.add(icon5);
-
+//仓库
 		final JLabel luser_save = new JLabel("我的仓库");
 		JLabel icon6 = new JLabel();
 		ImageIcon icon_save = new ImageIcon(new ImageIcon("img/仓库.png").getImage().getScaledInstance(15, 15, Image.SCALE_DEFAULT));
@@ -556,11 +779,20 @@ public class Frame extends JFrame{
 				// TODO Auto-generated method stub
 				changeCard(parray,5);
 				card.show(pcont,"我的仓库");
+				try {
+					getMyTicket(p_save_cont_container);
+				} catch (HttpException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		});
 		p_user3.add(icon6);
-		
-		final JLabel luser_home = new JLabel("我的收藏");
+//		回收站
+		final JLabel luser_home = new JLabel("回收站");
 		JLabel icon7 = new JLabel();
 		ImageIcon icon_home = new ImageIcon(new ImageIcon("img/收藏.png").getImage().getScaledInstance(15, 15, Image.SCALE_DEFAULT));
 		icon7.setIcon(icon_home);
@@ -597,6 +829,15 @@ public class Frame extends JFrame{
 				// TODO Auto-generated method stub
 				changeCard(parray,6);
 				card.show(pcont,"我的收藏");
+				try {
+					getbrushs(p_brush_cont_container, Color.white);
+				} catch (HttpException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		});
 		p_user4.add(icon7);
@@ -628,10 +869,10 @@ public class Frame extends JFrame{
 		JScrollPane jsp1 = new JScrollPane(pcont_scenic,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
 				jsp2 = new JScrollPane(pcont_inter,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
 				jsp3 = new JScrollPane(pcont_video,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
-				jsp4 = new JScrollPane(pcont_user,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
-				jsp5 = new JScrollPane(pcont_order,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
-				jsp6 = new JScrollPane(pcont_save,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
-				jsp7 = new JScrollPane(pcont_home,JScrollPane.VERTICAL_SCROLLBAR_ALWAYS,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+				jsp4 = new JScrollPane(pcont_user,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
+				jsp5 = new JScrollPane(pcont_order,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
+				jsp6 = new JScrollPane(pcont_save,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER),
+				jsp7 = new JScrollPane(pcont_home,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
 		final JScrollPane[] pcont_cont = {jsp1, jsp2, jsp3, jsp4, jsp5, jsp6, jsp7};
 		String[] cardName = {"景点推荐","旅游国际","宣传视频","个人信息","我的订单","我的仓库","我的收藏"};
 		for(int i = 0; i <7; i++){
@@ -728,12 +969,12 @@ public class Frame extends JFrame{
 		
 		//内容
 		JPanel p_scenic_body_main_cont = new JPanel();
-		p_scenic_body_main_cont.setPreferredSize(new Dimension(700,500));
+		p_scenic_body_main_cont.setPreferredSize(new Dimension(700,700));
 		p_scenic_body_main_cont.setBackground(Color.white);
 		p_scenic_body_main_cont.setLayout(new FlowLayout(0,15,10));
 		p_scenic_body_main.add(p_scenic_body_main_cont);
 		
-		showScenic(p_scenic_body_main_cont,scenics,"    购     票");
+		showScenic(p_scenic_body_main_cont,scenics,"    购     票", this);
 		p_scenic_body.add(p_scenic_body_main);
 		
 //		旅游国际
@@ -791,7 +1032,7 @@ public class Frame extends JFrame{
 		p_inter_scenic_title.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
 		
 		//内容
-		showScenic(p_inter_scenic_cont,inter_scenics,"    购     票");
+		showScenic(p_inter_scenic_cont,interScenics,"    购     票", this);
 		p_inter_scenic_cont.setLayout(new FlowLayout(0,18,20));
 		p_inter_scenic_cont.setBounds(0,50,700,500);
 		p_inter_scenic_cont.setBackground(white);
@@ -833,7 +1074,7 @@ public class Frame extends JFrame{
 		p_video_cont_body.setLayout(new FlowLayout(0,18,20));
 		p_video_cont_body.setBounds(0,40,700,600);
 		p_video_cont_body.setBackground(white);
-		showScenic(p_video_cont_body,scenic_videos,"    观     看");
+		showScenic(p_video_cont_body,scenic_videos,"    观     看", this);
 		
 		p_video_cont_title.add(l_video_cont_title);
 		p_video_cont.add(p_video_cont_title);
@@ -846,36 +1087,6 @@ public class Frame extends JFrame{
 		pcont_user.setLayout(new FlowLayout(1,10,0));
 		pcont_user.setBackground(Color.white);
 		pcont_user.setPreferredSize(new Dimension(750,800));
-		JPanel p_user_head = new JPanel();
-		JPanel p_user_cont = new JPanel();
-		JPanel p_user_cont_infor = new JPanel();
-		JPanel p_user_cont_avatar = new JPanel();
-		JLabel l_user_head = new JLabel("编辑个人信息>>"),
-				l_user_cont_name = new JLabel("昵称: "),
-				l_user_cont_sex = new JLabel("性别: "),
-				l_user_cont_birthday = new JLabel("生日: "),
-				l_user_cont_place = new JLabel("省市: "),
-				l_user_cont_intro = new JLabel("介绍: ");
-		JLabel[] label_infor = {l_user_cont_name, l_user_cont_sex, l_user_cont_birthday, l_user_cont_place, l_user_cont_intro};
-		JTextField t_user_name = new JTextField();
-		JRadioButton secret = new JRadioButton("2"),
-				sex_man = new JRadioButton("0"),
-				sex_woman = new JRadioButton("1");
-		JLabel l_secret = new JLabel("保密");
-		JLabel l_sex_man = new JLabel("男");
-		JLabel l_sex_woman = new JLabel("女");
-		ButtonGroup b_user_sex = new ButtonGroup();
-		JComboBox birth_y = new JComboBox(),
-				birth_m = new JComboBox(),
-				province = new JComboBox(),
-				city = new JComboBox();
-		JLabel l_birth_y = new JLabel("年");
-		JLabel l_birth_m = new JLabel("月");
-		JLabel l_province = new JLabel("省");
-		JLabel l_city = new JLabel("市");
-		JTextArea t_intro = new JTextArea();
-		JLabel l_user_avatar = new JLabel();
-		JButton b_avatar = new JButton("修改");
 		//顶部标题
 		p_user_head.setPreferredSize(new Dimension(750,50));
 		p_user_head.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
@@ -931,6 +1142,63 @@ public class Frame extends JFrame{
 		l_user_avatar.setIcon(icon_avator);
 		l_user_avatar.setBounds(20,30,150,150);
 		b_avatar.setBounds(65, 200, 60, 25);
+		b_avatar.addMouseListener(new MouseListener() {
+			
+			public void mouseReleased(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mousePressed(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseExited(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseEntered(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				
+			}
+			
+			public void mouseClicked(MouseEvent arg0) {
+				// TODO Auto-generated method stub
+				DefaultHttpClient http = new DefaultHttpClient();
+				String respContent = null;
+				String birth = birth_y.getText()+"/"+birth_m.getText();
+				HttpPut put = new HttpPut("http://localhost/tourplace/src/user.php");
+				put.addHeader("Content-Type", "application/json;charset=UTF-8");
+				put.addHeader("Accept", "application/json");
+				System.out.println(t_user_name.getText());
+				String param = "Type=1&User_ID="+user.getID()+"&Update[User_Name]="+t_user_name.getText()+"&Update[User_Password]=123&Update[User_Truename]=''&Update[User_Intro]="+t_intro.getText()+"&Update[User_Sex]="+user.getSex()+"&Update[User_Phone]=''&Update[User_Birthday]="+birth+"&Update[User_IDcard]=''&Update[User_Level]=50&Update[User_File]=''";
+				StringEntity entity = new StringEntity(param,"utf-8");
+				entity.setContentType("application/json");
+				put.setEntity(entity);
+			    try {
+					HttpResponse resp = http.execute(put);
+					if(resp.getStatusLine().getStatusCode() == 200) {
+				        HttpEntity he = resp.getEntity();
+				        respContent = EntityUtils.toString(he,"UTF-8");
+			        }
+					JSONObject res = JSONObject.fromObject(respContent);
+					JSONObject result = JSONObject.fromObject(res.get("Result"));
+					if(res.get("Type").toString().equals("1")){
+						System.out.println(result.get("Errmsg").toString());
+					}else{
+						System.out.println("修改成功");
+					}
+				} catch (ClientProtocolException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		});
 		
 		b_user_sex.add(secret);
 		b_user_sex.add(sex_man);
@@ -960,10 +1228,7 @@ public class Frame extends JFrame{
 		pcont_user.add(p_user_cont);
 		
 //		我的订单
-		JPanel p_order_head = new JPanel(),
-				p_order_cont = new JPanel(),
-				p_order_cont_container = new JPanel();
-		JLabel l_order_title = new JLabel("我的订单>>");
+		
 		
 		//顶部标题
 		pcont_order.setLayout(new FlowLayout(1,10,0));
@@ -984,44 +1249,12 @@ public class Frame extends JFrame{
 		p_order_cont_container.setBounds(0,20,700,600);
 		p_order_cont_container.setLayout(new FlowLayout(0,20,20));
 		p_order_cont_container.setBackground(white);
-		for(int i = 0; i < orders.length; i++){
-			JPanel p_order_cont_body = new JPanel();
-			JLabel l_order_ID = new JLabel("订单号："),
-					l_ticket_ID = new JLabel("门票号："),
-					l_order_Time = new JLabel("下单时间："),
-					l_order_Count = new JLabel("订单数量："),
-					l_order_Price = new JLabel("门票单价："),
-					orderID = new JLabel(orders[i].getOrderID()),
-					ticketID = new JLabel(orders[i].getTicketID()),
-					orderTime = new JLabel(orders[i].getOrderTime()),
-					orderCount = new JLabel(orders[i].getOrderCount()),
-					orderPrice = new JLabel(orders[i].getOrderPrice());
-			JLabel[] l = {l_order_ID, l_ticket_ID, l_order_Time, l_order_Count, l_order_Price};
-			JLabel[] item = {orderID, ticketID, orderTime, orderCount, orderPrice};
-			for(int j = 0; j < 5; j++){
-				l[j].setForeground(white);
-				l[j].setBounds(5,j*30+10,70,30);
-				item[j].setForeground(white);
-				item[j].setBounds(75,j*30+10,100,30);
-				p_order_cont_body.add(l[j]);
-				p_order_cont_body.add(item[j]);
-			}
-			
-			p_order_cont_body.setPreferredSize(new Dimension(180,250));
-			p_order_cont_body.setBackground(new Color(255,51,51));
-			p_order_cont_body.setLayout(null);
-			
-			p_order_cont_container.add(p_order_cont_body);
-		}
 
 		p_order_head.add(l_order_title);
 		p_order_cont.add(p_order_cont_container);
 		pcont_order.add(p_order_head);
 		pcont_order.add(p_order_cont);
 //		我的仓库
-		JPanel p_save_head = new JPanel(),
-				p_save_cont = new JPanel(),
-				p_save_cont_container = new JPanel();
 		JLabel l_save_title = new JLabel("我的门票>>");
 		
 		//顶部标题
@@ -1043,36 +1276,38 @@ public class Frame extends JFrame{
 		p_save_cont_container.setBounds(0,20,700,600);
 		p_save_cont_container.setLayout(new FlowLayout(0,20,20));
 		p_save_cont_container.setBackground(white);
-		for(int i = 0; i < orders.length; i++){
-			JPanel p_save_cont_body = new JPanel();
-			JLabel 	l_ticket_ID = new JLabel("门票号："),
-					l_scenic_ID = new JLabel("景区号："),
-					l_save_Time = new JLabel("门票时间："),
-					ticketID = new JLabel(tickets[i].getTicketID()),
-					scenicID = new JLabel(tickets[i].getScenicID()),
-					ticketTime = new JLabel(tickets[i].getTicketTime());
-			JLabel[] l = {l_ticket_ID, l_scenic_ID, l_save_Time};
-			JLabel[] item = {ticketID, scenicID, ticketTime};
-			for(int j = 0; j < 3; j++){
-				l[j].setForeground(white);
-				l[j].setBounds(5,j*30+10,70,30);
-				item[j].setForeground(white);
-				item[j].setBounds(75,j*30+10,100,30);
-				p_save_cont_body.add(l[j]);
-				p_save_cont_body.add(item[j]);
-			}
-			
-			p_save_cont_body.setPreferredSize(new Dimension(180,120));
-			p_save_cont_body.setBackground(new Color(255,51,51));
-			p_save_cont_body.setLayout(null);
-			
-			p_save_cont_container.add(p_save_cont_body);
-		}
+		
 
 		p_save_head.add(l_save_title);
 		p_save_cont.add(p_save_cont_container);
 		pcont_save.add(p_save_head);
 		pcont_save.add(p_save_cont);
+		
+		JLabel l_brush_title = new JLabel("回收站>>");
+		//顶部标题
+		pcont_home.setLayout(new FlowLayout(1,10,0));
+		pcont_home.setPreferredSize(new Dimension(750,800));
+		pcont_home.setBackground(Color.white);
+		p_brush_head.setPreferredSize(new Dimension(750,50));
+		p_brush_head.setLayout(null);
+		p_brush_head.setBackground(white);
+		p_brush_head.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
+		l_brush_title.setBounds(0,15,700,30);
+		l_brush_title.setFont(new Font("微软雅黑",1,20));
+		l_brush_title.setForeground(font_Color);
+		
+		//回收站内容
+		p_brush_cont.setPreferredSize(new Dimension(700,800));
+		p_brush_cont.setLayout(null);
+		p_brush_cont.setBackground(white);
+		p_brush_cont_container.setBounds(0,20,700,600);
+		p_brush_cont_container.setLayout(new FlowLayout(0,20,20));
+		p_brush_cont_container.setBackground(white);
+		
+		p_brush_head.add(l_brush_title);
+		p_brush_cont.add(p_brush_cont_container);
+		pcont_home.add(p_brush_head);
+		pcont_home.add(p_brush_cont);
 		
 		contentPane.setLayout(sp);
 		contentPane.add(phead);
@@ -1089,12 +1324,15 @@ public class Frame extends JFrame{
 			}
 		}
 	}
-	private void showScenic(JPanel p,Scenic[] scenics,String str){
-		for(int k = 0;k < scenics.length;k++){
+	private void showScenic(JPanel p,MyQueue scenics,final String str, final JFrame frame){
+		p.removeAll();
+		while(true){
+			final Scenic scenic = scenics.poll();
+			if(scenic == null)break;
 			final JPanel p_scenic_content = new JPanel();
 			JPanel p_scenic_name = new JPanel();
 			JLabel scenic_cont = new JLabel(),
-					scenic_name = new JLabel(scenics[k].getName());
+					scenic_name = new JLabel(scenic.getName());
 			final JLabel button_buy = new JLabel(str);
 			scenic_name.setForeground(Color.white);
 			p_scenic_name.add(scenic_name);
@@ -1128,10 +1366,30 @@ public class Frame extends JFrame{
 				
 				public void mouseClicked(MouseEvent arg0) {
 					// TODO Auto-generated method stub
-					
+					if(str.equals("    购     票")){
+						try {
+							getTicket(scenic, frame);
+						} catch (HttpException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}else{
+						try {
+							getMovie(scenic);
+						} catch (HttpException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
 				}
 			});
-			ImageIcon icon_scenic = new ImageIcon(new ImageIcon(scenics[k].getPicture()).getImage().getScaledInstance(117, 150, Image.SCALE_DEFAULT));
+			ImageIcon icon_scenic = new ImageIcon(new ImageIcon(scenic.getPicture()).getImage().getScaledInstance(117, 150, Image.SCALE_DEFAULT));
 			scenic_cont.setIcon(icon_scenic);
 			scenic_cont.setBounds(0,0,117,150);
 			button_buy.setBounds(0,150,117,24);
@@ -1143,7 +1401,793 @@ public class Frame extends JFrame{
 			p.add(p_scenic_content);
 		}
 	}
-	public void getScenics(){
-		
+	public void getScenic() throws HttpException, IOException{
+		String url = "http://localhost/tourplace/src/scenic.php?Type=3&Keys=Scenic_ID%2BScenic_Name%2BScenic_Picture&Page=1&PageSize=100&Search%5BProvince_ID%5D=&Search%5BCity_ID%5D=&Search%5BScenic_Level%5D=";
+		HttpClient httpClient = new HttpClient();
+		GetMethod getMethod = new GetMethod(url);
+		int statusCode = httpClient.executeMethod(getMethod);
+		if (statusCode != HttpStatus.SC_OK) {
+			System.err.println("请求出错: "+ getMethod.getStatusLine());
+		}else{
+			InputStream headers = getMethod.getResponseBodyAsStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(headers));      
+			StringBuilder sb = new StringBuilder(); 
+			String line = null;
+			while ((line = reader.readLine()) != null) {      
+				sb.append(line + "\n");
+			}
+			JSONObject params = JSONObject.fromObject(sb.toString());
+			String result = params.getString("Result");
+			result = result.substring(1,result.length()-1);
+			String[] scenicsList = result.split("},");
+			for(int i = 0; i < scenicsList.length;i++){
+				scenicsList[i] = scenicsList[i] + "}";
+				JSONObject scenic = JSONObject.fromObject(scenicsList[i]);
+				Scenic sce = new Scenic(scenic.getString("Scenic_ID"),scenic.getString("Scenic_Name"),scenic.getString("Scenic_Picture"));
+				scenics.offer(sce);
+			}
+		}
+	}
+	public void getInterScenic() throws HttpException, IOException{
+		String url = "http://localhost/tourplace/src/scenic.php?Type=3&Keys=Scenic_ID%2BScenic_Name%2BScenic_Picture%2BScenic_Intro&Page=1&PageSize=10&Search%5BProvince_ID%5D=&Search%5BCity_ID%5D=&Search%5BScenic_Level%5D=&Search%5BScenic_Type%5D=8";
+		HttpClient httpClient = new HttpClient();
+		GetMethod getMethod = new GetMethod(url);
+		int statusCode = httpClient.executeMethod(getMethod);
+		if (statusCode != HttpStatus.SC_OK) {
+			System.err.println("请求出错: "+ getMethod.getStatusLine());
+		}else{
+			InputStream headers = getMethod.getResponseBodyAsStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(headers));      
+			StringBuilder sb = new StringBuilder(); 
+			String line = null;
+			while ((line = reader.readLine()) != null) {      
+				sb.append(line + "\n");
+			}
+			JSONObject params = JSONObject.fromObject(sb.toString());
+			String result = params.getString("Result");
+			result = result.substring(1,result.length()-1);
+			String[] scenicsList = result.split("},");
+			for(int i = 0; i < scenicsList.length;i++){
+				scenicsList[i] = scenicsList[i] + "}";
+				JSONObject scenic = JSONObject.fromObject(scenicsList[i]);
+				Scenic sce = new Scenic(scenic.getString("Scenic_ID"),scenic.getString("Scenic_Name"),scenic.getString("Scenic_Picture"));
+				interScenics.offer(sce);
+			}
+			
+		}
+	}
+	public void getScenicVideo() throws HttpException, IOException{
+		String url = "http://localhost/tourplace/src/scenic.php?Type=0&Keys=Scenic_ID%2BScenic_Name%2BScenic_Picture%2BScenic_Vedio&Page=2&PageSize=8&Search%5BScenic_ID%5D=";
+		HttpClient httpClient = new HttpClient();
+		GetMethod getMethod = new GetMethod(url);
+		int statusCode = httpClient.executeMethod(getMethod);
+		if (statusCode != HttpStatus.SC_OK) {
+			System.err.println("请求出错: "+ getMethod.getStatusLine());
+		}else{
+			InputStream headers = getMethod.getResponseBodyAsStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(headers));      
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = reader.readLine()) != null) {      
+				sb.append(line + "\n");
+			}
+			JSONObject params = JSONObject.fromObject(sb.toString());
+			String result = params.getString("Result");
+			result = result.substring(1,result.length()-1);
+			String[] scenicsList = result.split("},");
+			for(int i = 0; i < scenicsList.length;i++){
+				scenicsList[i] = scenicsList[i] + "}";
+				JSONObject scenic = JSONObject.fromObject(scenicsList[i]);
+				Scenic sce = new Scenic(scenic.getString("Scenic_ID"),scenic.getString("Scenic_Name"),scenic.getString("Scenic_Picture"),scenic.getString("Scenic_Vedio"));
+				scenic_videos.offer(sce);
+			}
+		}
+	}
+	public void login(String userID, String password, JLabel errmsg, JLabel l, JDialog d) throws ClientProtocolException, IOException{
+		String url = "http://localhost/tourplace/src/login.php";
+		String respContent = null;
+		CloseableHttpClient httpClient = HttpClients.createDefault();
+		HttpPost post = new HttpPost(url);
+        post.setHeader("Content-type", "application/json; charset=utf-8");
+        String param = "User_ID="+userID+"&User_Password="+password;
+        StringEntity entity = new StringEntity(param,"utf-8");
+        entity.setContentEncoding("UTF-8");    
+        entity.setContentType("application/json");    
+        post.setEntity(entity);
+        HttpResponse resp = httpClient.execute(post);
+        if(resp.getStatusLine().getStatusCode() == 200) {
+	        HttpEntity he = resp.getEntity();
+	        respContent = EntityUtils.toString(he,"UTF-8");
+        }
+		JSONObject res = JSONObject.fromObject(respContent);
+		if(res.get("Type").toString().equals("1")){
+			JSONObject result = JSONObject.fromObject(res.get("Result"));
+			errmsg.setText(result.get("Errmsg").toString());
+		}else{
+			getUser(userID,errmsg, l);
+			d.setVisible(false);
+		}
+	}
+	public void region(String password,JLabel errmsg) throws ClientProtocolException, IOException{
+		String url = "http://localhost/tourplace/src/user.php";
+		String respContent = null;
+		CloseableHttpClient httpClient = HttpClients.createDefault();
+		HttpPost post = new HttpPost(url);
+        post.setHeader("Content-type", "application/json; charset=utf-8");
+        StringEntity entity = new StringEntity("Type=0&Data[User_name]=0001&Data[User_Intro]='该用户没有介绍'&Data[User_Type]=0&Data[User_Password]="+password,"utf-8");
+        entity.setContentEncoding("UTF-8");    
+        entity.setContentType("application/json");
+        System.out.println(entity);
+        post.setEntity(entity);
+       
+        
+        HttpResponse resp = httpClient.execute(post);
+        if(resp.getStatusLine().getStatusCode() == 200) {
+	        HttpEntity he = resp.getEntity();
+	        respContent = EntityUtils.toString(he,"UTF-8");
+        }
+		JSONObject res = JSONObject.fromObject(respContent);
+		JSONObject result = JSONObject.fromObject(res.get("Result"));
+		if(res.get("Type").toString().equals("1")){
+			errmsg.setText(result.get("Errmsg").toString());
+		}else{
+			errmsg.setText(result.get("User_ID").toString());
+		}
+	}
+	public void getUser(String id, JLabel errmsg, JLabel lusername) throws HttpException, IOException{
+		String url = "http://localhost/tourplace/src/user.php?Type=0&Key=&Page=1&PageSize=1&Search%5BUser_ID%5D="+id;
+		HttpClient httpClient = new HttpClient();
+		GetMethod getMethod = new GetMethod(url);
+		int statusCode = httpClient.executeMethod(getMethod);
+		if (statusCode != HttpStatus.SC_OK) {
+			System.err.println("请求出错: "+ getMethod.getStatusLine());
+		}else{
+			InputStream headers = getMethod.getResponseBodyAsStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(headers));      
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = reader.readLine()) != null) {      
+				sb.append(line + "\n");
+			}
+			JSONObject params = JSONObject.fromObject(sb.toString());
+			if(params.get("Type").toString().equals("1")){
+				JSONObject result = JSONObject.fromObject(params.get("Result"));
+				errmsg.setText(result.get("Errmsg").toString());
+			}else{
+				String result = params.getString("Result");
+				result = result.substring(1,result.length()-1);
+				JSONObject userinfor = JSONObject.fromObject(result);
+				String[] userInfor = {userinfor.getString("User_ID"),
+						userinfor.getString("User_Name"),
+						userinfor.getString("User_Birthday"),
+						"",
+						userinfor.getString("User_Intro"),
+						"",
+						""};
+				user = new User(userInfor);
+			}
+		}
+	}
+	public void getTicket(Scenic scenic,JFrame frame) throws HttpException, IOException{
+		String url = "http://localhost/tourplace/src/saleTicket.php?" +
+				"Type=1" +
+				"&Keys=Ticket_ID%2BTicket_Time%2BTicket_Picture%2BUser_ID%2BUser_Name%2BUserTicket_Price%2BUserTicket_Count%2BUser_Picture%2BUser_Phone&Page=1&PageSize=0" +
+				"&Search%5BUser_ID%5D=&Search%5BTicket_ID%5D=&Search%5BScenic_ID%5D=" + scenic.getID() + "&Search%5BTicket_Type%5D=1";
+		HttpClient httpClient = new HttpClient();
+		GetMethod getMethod = new GetMethod(url);
+		tickets = null;
+		int statusCode = httpClient.executeMethod(getMethod);
+		if (statusCode != HttpStatus.SC_OK) {
+			System.err.println("请求出错: "+ getMethod.getStatusLine());
+		}else{
+			InputStream headers = getMethod.getResponseBodyAsStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(headers));      
+			StringBuilder sb = new StringBuilder();			
+			String line = null;
+			while ((line = reader.readLine()) != null) {      
+				sb.append(line + "\n");
+			}
+			JSONObject params = JSONObject.fromObject(sb.toString());
+			if(params.get("Type").toString().equals("1")){
+				JSONObject result = JSONObject.fromObject(params.get("Result"));
+				System.out.println(result.get("Errmsg").toString());
+			}else{
+				tickets = null;
+				String result = params.getString("Result");
+				if(result.equals("[]")){
+					tickets = null;
+				}else{
+					result = result.substring(1,result.length()-1);
+					String[] ticketList = result.split("},");
+					tickets = new Ticket[ticketList.length];
+					for(int i = 0; i < ticketList.length;i++){
+						ticketList[i] = ticketList[i] + "}";
+						JSONObject ticket = JSONObject.fromObject(ticketList[i]);
+						String[] ticketinfor = {ticket.getString("Ticket_ID"),ticket.getString("Ticket_Time"),ticket.getString("UserTicket_Price"),ticket.getString("User_ID"),ticket.getString("UserTicket_Count")};
+						Ticket tic = new Ticket(ticketinfor);
+						tickets[i] = tic;
+					}
+				}
+				showTicketDialog(frame);
+			}
+		}
+	}
+	public void showTicketDialog(JFrame frame){
+		final JDialog dialog = new JDialog(frame, "购票", true);
+		dialog.setBounds(300, 300, 250, 250);
+		JPanel p =new JPanel();
+		p.setBounds(0, 0, 250, 250);
+		p.setLayout(null);
+		JScrollPane jsp = new JScrollPane(p,JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+		if(tickets == null){
+			JLabel l_text = new JLabel("此景区暂时没有门票出售");
+			l_text.setBounds(0,100,250,30);
+			p.add(l_text);
+		}else{
+			for (int i = 0; i < tickets.length; i++){
+				final int index = i;
+				JPanel p_cont = new JPanel();
+				p_cont.setBounds(0, 160*i, 250, 210);
+				p_cont.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(219, 219, 219)));
+				p_cont.setLayout(null);
+				JLabel l_price = new JLabel("票价：");
+				JLabel l_ticketID = new JLabel("票号：");
+				JLabel l_time = new JLabel("时间：");
+				JLabel l_remain = new JLabel("剩余：");
+				JLabel l_cont = new JLabel("数量：");
+				JLabel[] l = {l_price, l_ticketID, l_time, l_remain};
+	 			JLabel price = new JLabel(tickets[i].getTicketPrice());
+				JLabel ticketID = new JLabel(tickets[i].getTicketID());
+				JLabel remain = new JLabel(tickets[i].getTicketCount());
+				JLabel time = new JLabel(tickets[i].getTicketTime());
+				final JTextField cont = new JTextField();
+				JLabel[] l2 = {price, ticketID, time, remain};
+				JButton b = new JButton("下单");
+				for(int j = 0; j < 4; j++){
+					l[j].setBounds(10, 30*j+10, 50, 50);
+					l2[j].setBounds(50, 30*j+10, 100, 50);
+					p_cont.add(l[j]);
+					p_cont.add(l2[j]);
+				}
+				l_cont.setBounds(10, 150, 50, 50);
+				cont.setBounds(50, 165, 100, 20);
+				p_cont.add(l_cont);
+				p_cont.add(cont);
+				b.setBounds(80, 190, 80, 20);
+				b.addMouseListener(new MouseListener() {
+					
+					public void mouseReleased(MouseEvent arg0) {
+						// TODO Auto-generated method stub
+						
+					}
+					
+					public void mousePressed(MouseEvent arg0) {
+						// TODO Auto-generated method stub
+						
+					}
+					
+					public void mouseExited(MouseEvent arg0) {
+						// TODO Auto-generated method stub
+						
+					}
+					
+					public void mouseEntered(MouseEvent arg0) {
+						// TODO Auto-generated method stub
+						
+					}
+					
+					public void mouseClicked(MouseEvent arg0) {
+						// TODO Auto-generated method stub
+						SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");//设置日期格式
+						String url = "http://localhost/tourplace/src/order.php";
+						String param = "User_ID=" + user.getID() +
+								"&User_ID2=" + tickets[index].getUser() + 
+								"&Ticket_ID=" + tickets[index].getTicketID() + 
+								"&Order_Time=" + df.format(new Date()) + 
+								"&Order_Count=" + cont.getText() +
+								"&Order_Price=" + tickets[index].getTicketPrice();
+						System.out.println(tickets[index].getUser());
+						String respContent = null;
+						CloseableHttpClient httpClient = HttpClients.createDefault();
+						HttpPost post = new HttpPost(url);
+				        post.setHeader("Content-type", "application/json; charset=utf-8");
+				        StringEntity entity = new StringEntity(param,"utf-8");
+				        entity.setContentEncoding("UTF-8");    
+				        entity.setContentType("application/json");
+				        System.out.println(entity);
+				        post.setEntity(entity);
+				        HttpResponse resp;
+						try {
+							resp = httpClient.execute(post);
+							if(resp.getStatusLine().getStatusCode() == 200) {
+						        HttpEntity he = resp.getEntity();
+						        respContent = EntityUtils.toString(he,"UTF-8");
+					        }
+							JSONObject res = JSONObject.fromObject(respContent);
+							JSONObject result = JSONObject.fromObject(res.get("Result"));
+							if(res.get("Type").toString().equals("1")){
+								System.out.println(result.getString("Errmsg"));
+							}else{
+								System.out.println("下单成功");
+								dialog.setVisible(false);
+							}
+						} catch (ClientProtocolException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						} catch (IOException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+					}
+				});
+				p_cont.add(b);
+				p.add(p_cont);
+			}
+		}
+		dialog.add(p);
+		dialog.setVisible(true);
+	}
+	public void getOrders(JPanel p_order_cont_container, Color white) throws HttpException, IOException{
+		String url = "http://localhost/tourplace/src/order.php?" +
+				"Type=2" +
+				"&User_ID=" + user.getID() +
+				"&Keys=Order_ID%2BScenic_Name%2BTicket_Time%2BOrder_Time%2BOrder_State%2BOrder_Price%2BUser_Name2%2BOrder_Count" +
+				"&Page=1&" +
+				"PageSize=0" +
+				"&Search%5BOrder_State%5D=0";
+		HttpClient httpClient = new HttpClient();
+		GetMethod getMethod = new GetMethod(url);
+		int statusCode = httpClient.executeMethod(getMethod);
+		if (statusCode != HttpStatus.SC_OK) {
+			System.err.println("请求出错: "+ getMethod.getStatusLine());
+		}else{
+			InputStream headers = getMethod.getResponseBodyAsStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(headers));      
+			StringBuilder sb = new StringBuilder();			
+			String line = null;
+			while ((line = reader.readLine()) != null) {      
+				sb.append(line + "\n");
+			}
+			JSONObject params = JSONObject.fromObject(sb.toString());
+			if(params.get("Type").toString().equals("1")){
+				JSONObject result = JSONObject.fromObject(params.get("Result"));
+				System.out.println(result.get("Errmsg").toString());
+			}else{
+				orders = null;
+				String result = params.getString("Result");
+				if(result.equals("[]")){
+					p_order_cont_container.removeAll();
+					JLabel l_warning = new JLabel("您暂时还没有订单");
+					l_warning.setBounds(100, 200, 200, 50);
+					p_order_cont_container.add(l_warning);
+				}else{
+					result = result.substring(1,result.length()-1);
+					String[] ordersList = result.split("},");
+					orders = new Order[ordersList.length];
+					for(int i = 0; i < ordersList.length;i++){
+						ordersList[i] = ordersList[i] + "}";
+						JSONObject order = JSONObject.fromObject(ordersList[i]);
+						String[] order_item = {order.getString("Order_ID"), order.getString("Scenic_Name"),order.getString("Order_Time"), order.getString("Order_Count"), order.getString("Order_Price"), order.getString("Ticket_Time")};
+						orders[i] = new Order(order_item);
+					}
+					mySort(orders, 0, orders.length-1);
+					showOrder(p_order_cont_container, white);
+				}
+				
+			}
+		}
+	}
+	public void showOrder(final JPanel p_order_cont_container, final Color white){
+		p_order_cont_container.removeAll();
+		for(int i = 0; i < orders.length; i++){
+			final int step = i;
+			JPanel p_order_cont_body = new JPanel();
+			JLabel l_order_ID = new JLabel("订单号："),
+					l_ticket_ID = new JLabel("门票号："),
+					l_order_Time = new JLabel("下单时间："),
+					l_order_Count = new JLabel("订单数量："),
+					l_order_Price = new JLabel("订单金额："),
+					orderID = new JLabel(orders[i].getOrderID()),
+					ticketID = new JLabel(orders[i].getScenicName()),
+					orderTime = new JLabel(orders[i].getOrderTime()),
+					orderCount = new JLabel(orders[i].getOrderCount()),
+					orderPrice = new JLabel(orders[i].getOrderPrice());
+			JLabel[] l = {l_order_ID, l_ticket_ID, l_order_Time, l_order_Count, l_order_Price};
+			JLabel[] item = {orderID, ticketID, orderTime, orderCount, orderPrice};
+			JButton bpay = new JButton("支付");
+			JButton bremove = new JButton("删除");
+			for(int j = 0; j < 5; j++){
+				l[j].setForeground(white);
+				l[j].setBounds(5,j*30+10,70,30);
+				item[j].setForeground(white);
+				item[j].setBounds(75,j*30+10,100,30);
+				p_order_cont_body.add(l[j]);
+				p_order_cont_body.add(item[j]);
+			}
+			bpay.setBounds(40, 180, 80, 20);
+			bpay.addMouseListener(new MouseListener() {
+				
+				public void mouseReleased(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mousePressed(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mouseExited(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mouseEntered(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mouseClicked(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					DefaultHttpClient http = new DefaultHttpClient();
+					String respContent = null;
+					HttpPut put = new HttpPut("http://localhost/tourplace/src/order.php");
+					put.addHeader("Content-Type", "application/json;charset=UTF-8");
+					put.addHeader("Accept", "application/json");
+					String param = "Order_ID=" + orders[step].getOrderID() + "&Order_State=1";
+					StringEntity entity = new StringEntity(param,"utf-8");
+					entity.setContentType("application/json");
+					put.setEntity(entity);
+				    try {
+						HttpResponse resp = http.execute(put);
+						if(resp.getStatusLine().getStatusCode() == 200) {
+					        HttpEntity he = resp.getEntity();
+					        respContent = EntityUtils.toString(he,"UTF-8");
+				        }
+						JSONObject res = JSONObject.fromObject(respContent);
+						if(res.get("Type").toString().equals("1")){
+							JSONObject result = JSONObject.fromObject(res.get("Result"));
+							System.out.println(result.get("Errmsg").toString());
+						}else{
+							System.out.println("支付成功");
+						}
+					} catch (ClientProtocolException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			});
+			bremove.setBounds(40, 205, 80, 20);
+			bremove.addMouseListener(new MouseListener() {
+				
+				public void mouseReleased(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mousePressed(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mouseExited(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mouseEntered(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mouseClicked(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					DefaultHttpClient http = new DefaultHttpClient();
+					String respContent = null;
+					HttpPut put = new HttpPut("http://localhost/tourplace/src/order.php");
+					put.addHeader("Content-Type", "application/json;charset=UTF-8");
+					put.addHeader("Accept", "application/json");
+					String param = "Order_ID=" + orders[step].getOrderID() + "&Order_State=2";
+					StringEntity entity = new StringEntity(param,"utf-8");
+					entity.setContentType("application/json");
+					put.setEntity(entity);
+				    try {
+						HttpResponse resp = http.execute(put);
+						if(resp.getStatusLine().getStatusCode() == 200) {
+					        HttpEntity he = resp.getEntity();
+					        respContent = EntityUtils.toString(he,"UTF-8");
+				        }
+						JSONObject res = JSONObject.fromObject(respContent);
+						if(res.get("Type").toString().equals("1")){
+							JSONObject result = JSONObject.fromObject(res.get("Result"));
+							System.out.println(result.get("Errmsg").toString());
+						}else{
+							System.out.println("删除成功");
+						}
+					} catch (ClientProtocolException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			});
+			p_order_cont_body.add(bpay);
+			p_order_cont_body.add(bremove);
+			p_order_cont_body.setPreferredSize(new Dimension(180,250));
+			p_order_cont_body.setBackground(new Color(255,51,51));
+			p_order_cont_body.setLayout(null);
+			p_order_cont_container.add(p_order_cont_body);
+		}
+	}
+	public void getMyTicket(JPanel p_save_cont_container) throws HttpException, IOException{
+		String url = "http://localhost/tourplace/src/saleTicket.php?" +
+				"Type=0" +
+				"&User_ID=" + user.getID() +
+				"&Keys=Ticket_ID%2BUserTicket_Price%2BUserTicket_Count%2BTicket_Time%2BScenic_Name" +
+				"&Page=1&" +
+				"PageSize=0" +
+				"&Search%5BTicket_ID%5D=&Search%5BTicket_Type%5D=0";
+		HttpClient httpClient = new HttpClient();
+		GetMethod getMethod = new GetMethod(url);
+		int statusCode = httpClient.executeMethod(getMethod);
+		if (statusCode != HttpStatus.SC_OK) {
+			System.err.println("请求出错: "+ getMethod.getStatusLine());
+		}else{
+			InputStream headers = getMethod.getResponseBodyAsStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(headers));      
+			StringBuilder sb = new StringBuilder();			
+			String line = null;
+			while ((line = reader.readLine()) != null) {      
+				sb.append(line + "\n");
+			}
+			JSONObject params = JSONObject.fromObject(sb.toString());
+			if(params.get("Type").toString().equals("1")){
+				JSONObject result = JSONObject.fromObject(params.get("Result"));
+				System.out.println(result.get("Errmsg").toString());
+			}else{
+				mytickets = null;
+				String result = params.getString("Result");
+				if(result.equals("[]")){
+					p_save_cont_container.removeAll();
+					JLabel l_warning = new JLabel("您暂时还没有门票");
+					l_warning.setBounds(100, 200, 200, 50);
+					p_save_cont_container.add(l_warning);
+				}else{
+					result = result.substring(1,result.length()-1);
+					String[] ticketList = result.split("},");
+					mytickets = new Ticket[ticketList.length];
+					for(int i = 0; i < ticketList.length;i++){
+						ticketList[i] = ticketList[i] + "}";
+						JSONObject ticket = JSONObject.fromObject(ticketList[i]);
+						String[] ticketinfor = {ticket.getString("Ticket_ID"),ticket.getString("Ticket_Time"),ticket.getString("UserTicket_Price"),"", ticket.getString("UserTicket_Count")};
+						Ticket tic = new Ticket(ticketinfor);
+						tic.setScenicName(ticket.getString("Scenic_Name"));
+						mytickets[i] = tic;
+					}
+					showMyTicket(p_save_cont_container);
+				}
+			}
+		}
+	}
+	public void showMyTicket(JPanel p_save_cont_container){
+		p_save_cont_container.removeAll();
+		for(int i = 0; i < mytickets.length; i++){
+			JPanel p_save_cont_body = new JPanel();
+			JLabel 	l_scenic_name = new JLabel("景区名称："),
+					l_scenic_ID = new JLabel("门票号码："),
+					l_ticket_Time = new JLabel("门票时间："),
+					l_ticket_Count = new JLabel("门票数量"),
+					scenicName = new JLabel(mytickets[i].getScenicName()),
+					ticketID = new JLabel(mytickets[i].getTicketID()),
+					ticketTime = new JLabel(mytickets[i].getTicketTime()),
+					ticketCount = new JLabel(mytickets[i].getTicketCount());
+			JLabel[] l = {l_scenic_name, l_scenic_ID, l_ticket_Time,l_ticket_Count};
+			JLabel[] item = {scenicName, ticketID, ticketTime, ticketCount};
+			for(int j = 0; j < 4; j++){
+				l[j].setForeground(Color.white);
+				l[j].setBounds(5,j*30+10,70,30);
+				item[j].setForeground(Color.white);
+				item[j].setBounds(75,j*30+10,100,30);
+				p_save_cont_body.add(l[j]);
+				p_save_cont_body.add(item[j]);
+			}
+			
+			p_save_cont_body.setPreferredSize(new Dimension(180,150));
+			p_save_cont_body.setBackground(new Color(255,51,51));
+			p_save_cont_body.setLayout(null);
+			
+			p_save_cont_container.add(p_save_cont_body);
+		}
+	}
+	public void getbrushs(JPanel p_brush_cont_container, Color white) throws HttpException, IOException{
+		String url = "http://localhost/tourplace/src/order.php?" +
+				"Type=2" +
+				"&User_ID=" + user.getID() +
+				"&Keys=Order_ID%2BScenic_Name%2BTicket_Time%2BOrder_Time%2BOrder_State%2BOrder_Price%2BUser_Name2%2BOrder_Count" +
+				"&Page=1&" +
+				"PageSize=0" +
+				"&Search%5BOrder_State%5D=2";
+		HttpClient httpClient = new HttpClient();
+		GetMethod getMethod = new GetMethod(url);
+		int statusCode = httpClient.executeMethod(getMethod);
+		if (statusCode != HttpStatus.SC_OK) {
+			System.err.println("请求出错: "+ getMethod.getStatusLine());
+		}else{
+			InputStream headers = getMethod.getResponseBodyAsStream();
+			BufferedReader reader = new BufferedReader(new InputStreamReader(headers));      
+			StringBuilder sb = new StringBuilder();			
+			String line = null;
+			while ((line = reader.readLine()) != null) {      
+				sb.append(line + "\n");
+			}
+			JSONObject params = JSONObject.fromObject(sb.toString());
+			if(params.get("Type").toString().equals("1")){
+				JSONObject result = JSONObject.fromObject(params.get("Result"));
+				System.out.println(result.get("Errmsg").toString());
+			}else{
+				brushs = new MyStack();
+				String result = params.getString("Result");
+				if(result.equals("[]")){
+					p_brush_cont_container.removeAll();
+					JLabel l_warning = new JLabel("您暂时还没有门票");
+					l_warning.setBounds(100, 200, 200, 50);
+					p_brush_cont_container.add(l_warning);
+				}else{
+					result = result.substring(1,result.length()-1);
+					String[] brushsList = result.split("},");
+					for(int i = 0; i < brushsList.length;i++){
+						brushsList[i] = brushsList[i] + "}";
+						JSONObject brush = JSONObject.fromObject(brushsList[i]);
+						String[] order_item = {brush.getString("Order_ID"), brush.getString("Scenic_Name"),brush.getString("Order_Time"), brush.getString("Order_Count"), brush.getString("Order_Price"), brush.getString("Ticket_Time")};
+						brushs.push(new Order(order_item));
+					}
+					showbrushs(p_brush_cont_container, white);
+				}
+			}
+		}
+	}
+	public void showbrushs(final JPanel p_brush_cont_container, final Color white){
+		p_brush_cont_container.removeAll();
+		while(true){
+			System.out.println("执行一次");
+			final Order brushOrder = brushs.pull();
+			if(brushOrder == null)break;
+			JPanel p_order_cont_body = new JPanel();
+			JLabel l_order_ID = new JLabel("订单号："),
+					l_ticket_ID = new JLabel("门票号："),
+					l_order_Time = new JLabel("下单时间："),
+					l_order_Count = new JLabel("订单数量："),
+					l_order_Price = new JLabel("订单金额："),
+					orderID = new JLabel(brushOrder.getOrderID()),
+					ticketID = new JLabel(brushOrder.getScenicName()),
+					orderTime = new JLabel(brushOrder.getOrderTime()),
+					orderCount = new JLabel(brushOrder.getOrderCount()),
+					orderPrice = new JLabel(brushOrder.getOrderPrice());
+			JLabel[] l = {l_order_ID, l_ticket_ID, l_order_Time, l_order_Count, l_order_Price};
+			JLabel[] item = {orderID, ticketID, orderTime, orderCount, orderPrice};
+			JButton bpay = new JButton("回收");
+			for(int j = 0; j < 5; j++){
+				l[j].setForeground(white);
+				l[j].setBounds(5,j*30+10,70,30);
+				item[j].setForeground(white);
+				item[j].setBounds(75,j*30+10,100,30);
+				p_order_cont_body.add(l[j]);
+				p_order_cont_body.add(item[j]);
+			}
+			bpay.setBounds(40, 180, 80, 20);
+			bpay.addMouseListener(new MouseListener() {
+				
+				public void mouseReleased(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mousePressed(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mouseExited(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mouseEntered(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					
+				}
+				
+				public void mouseClicked(MouseEvent arg0) {
+					// TODO Auto-generated method stub
+					DefaultHttpClient http = new DefaultHttpClient();
+					String respContent = null;
+					HttpPut put = new HttpPut("http://localhost/tourplace/src/order.php");
+					put.addHeader("Content-Type", "application/json;charset=UTF-8");
+					put.addHeader("Accept", "application/json");
+					String param = "Order_ID=" + brushOrder.getOrderID() + "&Order_State=0";
+					StringEntity entity = new StringEntity(param,"utf-8");
+					entity.setContentType("application/json");
+					put.setEntity(entity);
+				    try {
+						HttpResponse resp = http.execute(put);
+						if(resp.getStatusLine().getStatusCode() == 200) {
+					        HttpEntity he = resp.getEntity();
+					        respContent = EntityUtils.toString(he,"UTF-8");
+				        }
+						JSONObject res = JSONObject.fromObject(respContent);
+						if(res.get("Type").toString().equals("1")){
+							JSONObject result = JSONObject.fromObject(res.get("Result"));
+							System.out.println(result.get("Errmsg").toString());
+						}else{
+							System.out.println("已成功回收");
+						}
+					} catch (ClientProtocolException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			});
+			
+			p_order_cont_body.add(bpay);
+			p_order_cont_body.setPreferredSize(new Dimension(180,250));
+			p_order_cont_body.setBackground(new Color(255,51,51));
+			p_order_cont_body.setLayout(null);
+			p_brush_cont_container.add(p_order_cont_body);
+		}
+	}
+	public void getMovie(Scenic scenic) throws HttpException, IOException{
+		//判断当前系统是否支持Java AWT Desktop扩展
+		if(java.awt.Desktop.isDesktopSupported()){
+			try {
+			//创建一个URI实例
+				java.net.URI uri = java.net.URI.create(scenic.getVideo());
+				//获取当前系统桌面扩展
+				java.awt.Desktop dp = java.awt.Desktop.getDesktop();
+				//判断系统桌面是否支持要执行的功能
+				if(dp.isSupported(java.awt.Desktop.Action.BROWSE)){
+				//获取系统默认浏览器打开链接
+				dp.browse(uri);   
+				}
+			} catch(java.lang.NullPointerException e){
+			//此为uri为空时抛出异常
+				System.out.println("url为空");
+			} catch (java.io.IOException e) {
+			//此为无法获取系统默认浏览器
+				System.out.println("无法获取默认浏览器");
+			}            
+		}
+	}
+	public void mySort(Order[] os, int p, int r){
+		if(p < r){
+			int q = partition(os, p, r);
+			mySort(os, p, q-1);
+			mySort(os, q+1, r);
+		}
+	}
+	public int partition(Order[] os, int p, int r){
+		int step = r-1;
+		int i = p-1;
+		int x = Integer.parseInt(os[step].getOrderPrice());
+		for(int j = p; j < r; j++){
+			if(Integer.parseInt(os[j].getOrderPrice()) <= x){
+				i += 1;
+				Order o = os[j];
+				os[i] = os[j];
+				os[j] = o;
+				
+			}
+		}
+		Order o = os[step];
+		os[step] = os[i+1];
+		os[i+1] = o;
+		return i+1;
 	}
 }

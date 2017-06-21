@@ -8,8 +8,6 @@ import java.awt.RenderingHints;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 
-import sun.java2d.pipe.DrawImage;
-
 //自定义TextField标签
 
 public class MyTextField extends JTextField{
